@@ -454,13 +454,11 @@ void process_file(string filename, Config config, Process_Type pt)
 			Error().Warn("Tandem that requires just 1 copy imposes no additional constraints");
 			config.please_only_tandems = false;
 		}
-	}
 
-	char cExactTandem[100];
-	snprintf(cExactTandem, 100, "^(\\w{%d,})\\1{%d,}$", tandem_min_unit, tandem_unit_copies - 1);
-	static regex reExactTandem(cExactTandem, regex::icase);
+		char cExactTandem[100];
+		snprintf(cExactTandem, 100, "^(\\w{%d,})\\1{%d,}$", tandem_min_unit, tandem_unit_copies - 1);
+		static regex reExactTandem(cExactTandem, regex::icase);
 
-	if (config.please_only_tandems) {
 		for (auto seq_length = seq_length_max; seq_length >= config_min_repeat_length; --seq_length) {
 			auto current_level = &length2map[seq_length];
 
@@ -477,6 +475,9 @@ void process_file(string filename, Config config, Process_Type pt)
 			}
 		}
 	}
+
+	// Consider tandems with flanks.
+	// TODO
 
 	// CULLING attempt. 
 	// Logic:
