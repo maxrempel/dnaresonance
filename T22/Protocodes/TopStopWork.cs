@@ -11,8 +11,10 @@ namespace Protocodes
     {
         // Config
         IProgress progress = null;
+        Dictionary<string, string> config = new Dictionary<string, string>();
 
         string inputFolder = Directory.GetCurrentDirectory();
+        string outputFolder;
 
         // Input
         string FILENAME_CONFIG = "_T22_code.cfg";
@@ -85,8 +87,42 @@ namespace Protocodes
                 }
             }
 
+            progress.ReportFile("Generating Elensum...");
+            GenerateElensum();
+
             progress.End();
             return true;
+        }
+
+        void GenerateElensum()
+        {
+            int length_low_cutoff;
+            if (!int.TryParse(config["length_low_cutoff"], out length_low_cutoff))
+            {
+                Log.Warning($"Cannot generate Elensum file because length_low_cutoff is not defined");
+                return;
+            }
+
+            var elenhisFiles = Directory.EnumerateFiles(outputFolder)
+                .Where(f => new string[] {
+                    ".tab"
+                }.Contains(Path.GetExtension(f).ToLower()));
+            elenhisFiles = elenhisFiles.Where(f => Path
+                .GetFileNameWithoutExtension(f).ToLower()
+                .EndsWith("elenhis"));
+
+
+
+
+
+
+
+
+
+
+
+
+            throw new NotImplementedException();
         }
 
         void ReadConfig()
@@ -99,8 +135,15 @@ namespace Protocodes
 
                 for (int linecount = 0; (line = f.ReadLine()) != null; ++linecount)
                 {
+                    // Skip empty strings.
+                    line = line.Trim();
+                    if (line.Length < 1)
+                    {
+                        continue;
+                    }
+
                     // Comment?
-                    var initial = line.TrimStart()[0];
+                    var initial = line[0];
                     if (initial == '>') { continue; }
 
                     var words = line.Split(separators);
@@ -109,9 +152,17 @@ namespace Protocodes
                     var dinuc = words[0];
                     if (dinuc.Length != 2)
                     {
-                        var msg = $"***Config error at line {linecount}: {dinuc} does not have two characters.";
-                        Log.Error(msg);
-                        throw new Exception(msg);
+                        // Assume it is a parameter setting in the format
+                        // parameter=value
+                        words = dinuc.Split(new char[] { '=' });
+                        if (words.Length != 2)
+                        {
+                            var msg = $"***Config error at line {linecount}: \"{line}\" does not parse.";
+                            Log.Error(msg);
+                            throw new Exception(msg);
+                        }
+                        config[words[0]] = words[1];
+                        continue;
                     }
                     if (Dinuc2BType.ContainsKey(dinuc))
                     {
@@ -175,7 +226,7 @@ namespace Protocodes
             string inputHeader = "";
 
             // Output.
-            string outputFolder = Path.Combine(inputFolder, "OUTPUT");
+            outputFolder = Path.Combine(inputFolder, "OUTPUT");
             if (!Directory.Exists(outputFolder))
             {
                 Directory.CreateDirectory(outputFolder);
