@@ -96,12 +96,21 @@ namespace Protocodes
 
         void GenerateElensum()
         {
+            string label_length_low_cutoff = "length_low_cutoff";
+
             int length_low_cutoff;
-            if (!int.TryParse(config["length_low_cutoff"], out length_low_cutoff))
+            if (!config.ContainsKey(label_length_low_cutoff))
+            {
+                length_low_cutoff = 0;
+            }
+            else if (!int.TryParse(config[label_length_low_cutoff], out length_low_cutoff))
             {
                 Log.Warning($"Cannot generate Elensum file because length_low_cutoff is not defined");
                 return;
             }
+
+            string ELENHIS_SUFFIX = "_ELENHIS";
+            string ELENHIS_PREFIX = "z_";
 
             var elenhisFiles = Directory.EnumerateFiles(outputFolder)
                 .Where(f => new string[] {
@@ -109,21 +118,68 @@ namespace Protocodes
                 }.Contains(Path.GetExtension(f).ToLower()));
             elenhisFiles = elenhisFiles.Where(f => Path
                 .GetFileNameWithoutExtension(f).ToLower()
-                .EndsWith("elenhis"));
+                .EndsWith(ELENHIS_SUFFIX.ToLower()));
 
+            string elensumFilename = "z_ELENSUM.tab";
+            string elensumFilepath = Path.Combine(outputFolder, elensumFilename);
+            using (var outputStream = new StreamWriter(elensumFilepath))
+            {
+                // Header
+                outputStream.WriteLine($">filename	total chain length with at least {length_low_cutoff}");
 
+                foreach (var inputFilepath in elenhisFiles)
+                {
+                    using (var inputStream = new StreamReader(inputFilepath))
+                    {
+                        long theSum = 0;
 
+                        for (var inputLine = inputStream.ReadLine(); inputLine != null; inputLine = inputStream.ReadLine())
+                        {
+                            // Skip header
+                            if (inputLine[0] == '>')
+                            {
+                                continue;
+                            }
 
+                            var numbers = inputLine.Split(' ', '\t');
+                            if (numbers.Length != 2)
+                            {
+                                Log.Warning($"GenerateElensum could not parse line \"{inputLine}\" in file {inputFilepath}");
+                                continue;
+                            }
 
+                            int elementLength, lengthCount;
+                            if (!int.TryParse(numbers[0], out elementLength))
+                            {
+                                Log.Warning(
+                                    $"GenerateElensum: {numbers[0]} is not a valid element length in line \"{inputLine}\" in file {inputFilepath}");
+                                continue;
+                            }
+                            if (!int.TryParse(numbers[1], out lengthCount))
+                            {
+                                Log.Warning(
+                                    $"GenerateElensum: {numbers[1]} is not a valid length count in line \"{inputLine}\" in file {inputFilepath}");
+                                continue;
+                            }
 
+                            if (elementLength < length_low_cutoff)
+                            {
+                                continue;
+                            }
 
+                            theSum += lengthCount;
+                        }
 
+                        string basename = Path.GetFileNameWithoutExtension(inputFilepath);
+                        basename = basename.Substring(ELENHIS_PREFIX.Length);
+                        basename = basename.Substring(0, basename.Length - ELENHIS_SUFFIX.Length);
 
+                        outputStream.WriteLine($"{basename} {theSum}");
+                    } // using inputStream
+                } // foreach inputFilepath
+            } // using outputStream
 
-
-
-            throw new NotImplementedException();
-        }
+        } // GenerateElensum()
 
         void ReadConfig()
         {
