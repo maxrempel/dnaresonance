@@ -1,0 +1,6 @@
+LOCUS	Annotations
+UNIMARK	Annotations
+FEATURES	Location/Qualifiers
+repeat_region	join(3..15,139..151,62..74,110..122,96..108)
+/repeat sequence:	MMKMMKKMMKMM
+//
