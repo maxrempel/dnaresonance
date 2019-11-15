@@ -120,7 +120,9 @@ namespace Protocodes
                 .GetFileNameWithoutExtension(f).ToLower()
                 .EndsWith(ELENHIS_SUFFIX.ToLower()));
 
-            string elensumFilename = "z_ELENSUM.tab";
+            string ELENSUM_TEMPLATE = "z_{folder}_ELENSUM.tab";
+            string folder = Path.GetFileName(inputFolder);
+            string elensumFilename = ELENSUM_TEMPLATE.Replace("{folder}", folder);
             string elensumFilepath = Path.Combine(outputFolder, elensumFilename);
             using (var outputStream = new StreamWriter(elensumFilepath))
             {
