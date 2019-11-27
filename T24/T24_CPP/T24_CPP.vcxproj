@@ -164,6 +164,7 @@
   <ItemGroup>
     <ClInclude Include="Config.h" />
     <ClInclude Include="Error.h" />
+    <ClInclude Include="FilterStatus.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

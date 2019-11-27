@@ -8,6 +8,8 @@
 #include <iostream>
 #include <ios>
 
+#include "FilterStatus.h"
+
 using namespace std;
 namespace fs = filesystem;
 
@@ -37,6 +39,13 @@ struct Config
 	int tandem_min_unit;
 	int tandem_unit_copies;
 
+	FilterStatus palindrome_status;
+	FilterStatus tandem_status;
+	FilterStatus palindrome_arm_tandem_status;
+
+	int palindrome_arm_tandem_min_unit;
+	int palindrome_arm_tandem_unit_copies;
+
 	unordered_set<char> letters; // legitimate letters to be analyzed; case insensitive
 	char masking_character = 'N';
 
@@ -56,12 +65,17 @@ struct Config
 	string label_cull_crd = "cull_crd";
 	string label_create_fpt_file = "create_fpt_file",
 		label_create_crd_file = "create_crd_file";
-	string label_only_palindromes = "palindromes";
+	string label_only_palindromes = "palindromes"; // deprecated
 	string label_palindrome_max_nonpalindromic_center = "palindrome_center";
 	string label_palindrome_min_length = "palindrome_arm";
-	string label_only_tandems = "tandems";
+	string label_only_tandems = "tandems"; // deprecated
 	string label_tandems_min_unit = "min_unit";
 	string label_tandems_unit_copies = "unit_copies";
+	string label_palindrome_status = "palindrome_status";
+	string label_tandem_status = "tandem_status";
+	string label_palindrome_arm_tandem_status = "palindrome_arms_tandems_status";
+	string label_palindrome_arm_tandem_min_unit = "palindrome_arm_tandem_min_unit";
+	string label_palindrome_arm_tandem_unit_copies = "palindrome_arm_tandem_unit_copies";
 	string label_input_filename_prefix = "filename_prefix_to_replace";
 
 	string output_folder_name = "Output";

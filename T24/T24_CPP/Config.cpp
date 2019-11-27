@@ -33,7 +33,12 @@ void Config::Parse(fs::path path)
 		label_palindrome_min_length,
 		label_only_tandems,
 		label_tandems_min_unit,
-		label_tandems_unit_copies
+		label_tandems_unit_copies,
+		label_palindrome_status,
+		label_tandem_status,
+		label_palindrome_arm_tandem_status,
+		label_palindrome_arm_tandem_min_unit,
+		label_palindrome_arm_tandem_unit_copies
 	};
 	auto config_match_total = sizeof(config_match) / sizeof(config_match[0]);
 	int config_match_count = 0;
@@ -94,6 +99,12 @@ void Config::Parse(fs::path path)
 		}
 		else if (first == label_tandems_unit_copies) {
 			tandem_unit_copies = stoi(second); // can throw
+		}
+		else if (first == label_palindrome_arm_tandem_min_unit) {
+			palindrome_arm_tandem_min_unit = stoi(second); // can throw
+		}
+		else if (first == label_palindrome_arm_tandem_unit_copies) {
+			palindrome_arm_tandem_unit_copies = stoi(second); // can throw
 		}
 		// Process bools.
 		regex yes("\\bYES\\b", regex::icase);
