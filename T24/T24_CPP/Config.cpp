@@ -1,4 +1,5 @@
 #include "Config.h"
+#include "FilterStatus.h"
 
 namespace fs = filesystem;
 
@@ -126,6 +127,16 @@ void Config::Parse(fs::path path)
 		else if (first == label_only_tandems) {
 			please_only_tandems = regex_match(second, yes);
 		}
+		// Process filters.
+		if (first == label_palindrome_status) {
+			palindrome_status = ReadFilterStatus(second);
+		}
+		else if (first == label_tandem_status) {
+			tandem_status = ReadFilterStatus(second);
+		}
+		else if (first == label_palindrome_arm_tandem_status) {
+			palindrome_arm_tandem_status = ReadFilterStatus(second);
+		}
 		// Other special cases.
 		if (first == label_masking_character) {
 			masking_character = second.at(0);
@@ -134,14 +145,33 @@ void Config::Parse(fs::path path)
 		++config_match_count;
 	}
 
-	// xSH This is no longer relevant, we have optional parameters with default values.
-	//if (config_match_count != config_match_total) {
-	//	throw new exception((const char* const)
-	//		("Not all config values have been set in config file " + file_config_name).c_str());
-	//}
-
 	for (auto const& c : config_map[label_meaningful_letters]) {
 		letters.insert(toupper(c));
 	}
 
-}
+} // Parse()
+
+FilterStatus Config::ReadFilterStatus(string s)
+{
+	// Enforce
+	regex enforce("^ENFORCE", regex::icase);
+	regex include("^INCLUDE", regex::icase);
+	regex yes("^YES", regex::icase);
+	// Ignore
+	regex ignore("^IGNORE", regex::icase);
+	// Exclude
+	regex exclude("^EXCLUDE", regex::icase);
+	regex no("^NO", regex::icase);
+
+	if (regex_match(s, ignore)) {
+		return FilterStatus::Ignore;
+	}
+	if (regex_match(s, exclude) || regex_match(s, no)) {
+		return FilterStatus::Exclude;
+	}
+	if (regex_match(s, enforce) || regex_match(s, yes) || regex_match(s, include)) {
+		return FilterStatus::Enforce;
+	}
+
+	return FilterStatus::Ignore;
+} // ReadFilterStatus()

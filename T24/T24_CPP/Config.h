@@ -88,6 +88,8 @@ struct Config
 
 	void Parse(fs::path = fs::current_path());
 
+	FilterStatus ReadFilterStatus(string s);
+
 	bool is_whitespace(string s)
 	{
 		return s.find_first_not_of(" \t") == string::npos;

@@ -2,8 +2,8 @@
 #include <string>
 using namespace std;
 
-enum class FilterStatus
+enum class FilterStatus: char
 {
-	Enforce = 'E', Ignore = 'I', Exclude = 'X'
+	Enforce = 'E', Ignore = 'I', Exclude = 'X',
 };
 
