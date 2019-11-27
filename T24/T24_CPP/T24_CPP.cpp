@@ -418,6 +418,9 @@ void process_file(string filename, Config config, Process_Type pt)
 	// Only look at palindromes, if so requested.
 	// Leave only exact palindromes, as defined by is_palindrome.
 	if (config.please_only_palindromes) {
+
+		std:cout << "Looking at palindromes." << endl;
+
 		for (auto seq_length = seq_length_max; seq_length >= config_min_repeat_length; --seq_length) {
 			auto current_level = &length2map[seq_length];
 
@@ -438,12 +441,52 @@ void process_file(string filename, Config config, Process_Type pt)
 	// Consider palindromes with flanks.
 	// TODO
 
-	// Only look at tandems, if so requested.
-	// Leave only exact tandems, as defined by is_tandem.
+	// Now consider tandems.
 	int tandem_min_unit = config.tandem_min_unit;
 	int tandem_unit_copies = config.tandem_unit_copies;
 
-	if (config.please_only_tandems) {
+	// TODO: is this logic correct?
+	bool please_exclude_tandems = config.please_only_palindromes && config.please_only_tandems;
+
+	if (please_exclude_tandems) {
+
+		std::cout << "Exclude tandems...";
+
+		if (tandem_min_unit < 1 || tandem_unit_copies <= 1) {
+			// Nothing to exclude
+			std::cout << "not." << endl;
+		}
+		else {
+			char cExactTandem[100];
+			snprintf(cExactTandem, 100, "^(\\w{%d,})\\1{%d,}$", tandem_min_unit, tandem_unit_copies - 1);
+			static regex reExactTandem(cExactTandem, regex::icase);
+
+			std::cout << "/" << cExactTandem << "/" << endl;
+
+			for (auto seq_length = seq_length_max; seq_length >= config_min_repeat_length; --seq_length) {
+				auto current_level = &length2map[seq_length];
+
+				auto level_iter = current_level->begin();
+				while (level_iter != current_level->end()) {
+					auto seq = level_iter->second;
+
+					if (is_tandem(seq, reExactTandem)) {
+						level_iter = current_level->erase(level_iter);
+					}
+					else {
+						++level_iter;
+					}
+				}
+			}
+		}
+	} // if exclude tandems
+
+	// Only look at tandems, if so requested.
+	// Leave only exact tandems, as defined by is_tandem.
+	if (config.please_only_tandems && !config.please_only_palindromes) {
+
+		std::cout << "Looking at tandems." << endl;
+
 		if (tandem_min_unit < 1) {
 			Error().Fatal("Tandem min unit should be >1 but is " + tandem_min_unit);
 		}
