@@ -353,66 +353,74 @@ void process_file(string filename, Config config, Process_Type pt)
 		// Try to extend each sequence by appending the next character
 		// to each of the sequences from the previous step. 
 
-		auto prefix_start2seq = length2map[seq_length - 1]; // where prefix sequences start
+		try {
 
-		seq2positions.clear();
-		seq = new char[(size_t)seq_length + 1];
-		seq[seq_length] = '\0';
+			auto prefix_start2seq = length2map[seq_length - 1]; // where prefix sequences start
 
-		// Calculate seq2positions for all sequences of length seq_length.
-		for (auto const& [start, prefix] : start2seq) {
-			if (start + seq_length >= fullbuffer_size) {
-				// prefix too close to the end
-				continue;
+			seq2positions.clear();
+			seq = new char[(size_t)seq_length + 1];
+			seq[seq_length] = '\0';
+
+			// Calculate seq2positions for all sequences of length seq_length.
+			for (auto const& [start, prefix] : start2seq) {
+				if (start + seq_length >= fullbuffer_size) {
+					// prefix too close to the end
+					continue;
+				}
+
+				memcpy(seq, fullbuffer + start, seq_length);
+
+				if (seq2positions.count(seq) < 1) {
+					list<streamsize> ll;
+					seq2positions[seq] = ll;
+				}
+				seq2positions[seq].push_back(start);
 			}
 
-			memcpy(seq, fullbuffer + start, seq_length);
+			std::cout << endl << "Sequence length " << seq_length
+				<< ". Total " << seq2positions.size() << " distinct sequences." << endl;
 
-			if (seq2positions.count(seq) < 1) {
-				list<streamsize> ll;
-				seq2positions[seq] = ll;
+			// Only leave seq2positions where seq appears enough.
+			auto seq_iter = seq2positions.begin();
+			while (seq_iter != seq2positions.end())
+			{
+				if (seq_iter->second.size() < config_copy_number) {
+					seq_iter = seq2positions.erase(seq_iter);
+				}
+				else {
+					++seq_iter;
+				}
 			}
-			seq2positions[seq].push_back(start);
+
+			std::cout << seq2positions.size() << " of them appear enough";
+
+			if (seq2positions.empty()) {
+				std::cout << "." << endl << endl;
+				break; // leave the loop
+			}
+
+			// Calculate map: start -> sequence for the current seq_length
+			start2seq.clear();
+			for (auto const& [s, plist] : seq2positions) {
+				for (auto const& p : plist) {
+					start2seq[p] = s;
+				}
+			}
+
+			std::cout << ", for a total of " << start2seq.size() << " sequences (counting all copies)." << endl;
+
+			// Update length2map.
+			unordered_map<streamsize, string> mss(start2seq);
+			length2map[seq_length] = mss;
+
+			seq_length_max = seq_length;
+			delete[] seq;
 		}
-
-		std::cout << endl << "Sequence length " << seq_length
-			<< ". Total " << seq2positions.size() << " distinct sequences." << endl;
-
-		// Only leave seq2positions where seq appears enough.
-		auto seq_iter = seq2positions.begin();
-		while (seq_iter != seq2positions.end())
-		{
-			if (seq_iter->second.size() < config_copy_number) {
-				seq_iter = seq2positions.erase(seq_iter);
-			}
-			else {
-				++seq_iter;
-			}
+		catch (exception ex) {
+			seq_length_max = seq_length - 1;
+			delete[] seq;
+			break;
 		}
-
-		std::cout << seq2positions.size() << " of them appear enough";
-
-		if (seq2positions.empty()) {
-			std::cout << "." << endl << endl;
-			break; // leave the loop
-		}
-
-		// Calculate map: start -> sequence for the current seq_length
-		start2seq.clear();
-		for (auto const& [s, plist] : seq2positions) {
-			for (auto const& p : plist) {
-				start2seq[p] = s;
-			}
-		}
-
-		std::cout << ", for a total of " << start2seq.size() << " sequences (counting all copies)." << endl;
-
-		// Update length2map.
-		unordered_map<streamsize, string> mss(start2seq);
-		length2map[seq_length] = mss;
-
-		seq_length_max = seq_length;
-		delete[] seq;
 	} // for seq_length
 
 	// Only look at palindromes, if so requested.
@@ -826,11 +834,11 @@ void process_file(string filename, Config config, Process_Type pt)
 		// Goal: sort by seq count then by length.
 		// So, build a flat structure.
 
-		// Use the original (not culled) data.
+		// Use the culled (not original) data.
 
 		map<int, vector<string>> count2seqs; // count => seqs, ordered by count
 
-		for (auto const& [len, start2seq] : length2map) {
+		for (auto const& [len, start2seq] : length2map_culled) {
 			unordered_map<string, int> seq2count;
 			for (auto const& [start, seq] : start2seq) {
 				if (seq2count.count(seq) < 1) {
@@ -850,7 +858,6 @@ void process_file(string filename, Config config, Process_Type pt)
 
 		// Now count2seqs has, for each count, sequences that appear that number of times, 
 		// in a non-decreasing order of their lengths.
-		
 		for (auto itr = count2seqs.crbegin(); itr != count2seqs.crend(); ++itr) {
 			auto count = itr->first;
 			auto seqs = itr->second;
