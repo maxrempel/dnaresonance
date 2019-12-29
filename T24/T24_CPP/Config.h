@@ -96,6 +96,7 @@ struct Config
 	}
 
 	// Case insensitive.
+	// Not a valid letter?
 	bool is_N_letter(char c) {
 		return letters.count(toupper(c)) == 0;
 	}

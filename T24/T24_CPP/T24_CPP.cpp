@@ -72,30 +72,6 @@ bool is_palindrome(string seq, Config config) {
 	return true;
 }
 
-// True if and only if seq is an exact tandem,
-// with the constraints from config.
-//bool is_tandem(string seq, Config config) {
-//	int tandem_min_unit = config.tandem_min_unit;
-//	int tandem_unit_copies = config.tandem_unit_copies;
-//
-//	if (tandem_min_unit < 1) {
-//		return false;
-//	}
-//	if (tandem_unit_copies < 1) {
-//		return false;
-//	}
-//	if (tandem_unit_copies == 1) {
-//		return true;
-//	}
-//
-//	char cExactTandem[100];
-//	snprintf(cExactTandem, 100, "^(\\w{%d,})\\1{%d,}$", tandem_min_unit, tandem_unit_copies - 1);
-//	static regex reExactTandem(cExactTandem, regex::icase);
-//	// TODO: optimization: compile it and place in config
-//
-//	return regex_match(seq, reExactTandem);
-//}
-
 bool is_tandem(string seq, regex reExactTandem) {
 	return regex_match(seq, reExactTandem);
 }
@@ -268,7 +244,6 @@ void process_file(string filename, Config config, Process_Type pt)
 				continue;
 			}
 
-			//memcpy(seq, buffer + startx, (size_t)config_min_repeat_length); // xSH TODO corrected?
 			memcpy(seq, fullbuffer + fullbuffer_position - config_min_repeat_length, (size_t)config_min_repeat_length);
 
 			try
@@ -365,6 +340,12 @@ void process_file(string filename, Config config, Process_Type pt)
 			for (auto const& [start, prefix] : start2seq) {
 				if (start + seq_length >= fullbuffer_size) {
 					// prefix too close to the end
+					continue;
+				}
+
+				auto nextChar = fullbuffer[start + seq_length - 1];
+				if (config.is_N_letter(nextChar)) {
+					// nextChar cannot be in seq
 					continue;
 				}
 
@@ -925,7 +906,7 @@ int main()
 			}
 		} // for each input data file
 	}
-	catch (exception ex) {
+ 	catch (exception ex) {
 		std::cerr << ex.what();
 	}
 	
