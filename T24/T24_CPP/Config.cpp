@@ -1,5 +1,6 @@
 #include "Config.h"
 #include "FilterStatus.h"
+#include "Error.h"
 
 namespace fs = filesystem;
 
@@ -14,6 +15,11 @@ void Config::Parse(fs::path path)
 			file_config_name = filename.string();
 			break;
 		}
+	}
+
+	if (file_config_name == "") {
+		string msg = "No configuration file foudn in folder " + folder_current_path;
+		Error().Fatal(msg);
 	}
 
 	string config_match[] = {
@@ -39,7 +45,8 @@ void Config::Parse(fs::path path)
 		label_tandem_status,
 		label_palindrome_arm_tandem_status,
 		label_palindrome_arm_tandem_min_unit,
-		label_palindrome_arm_tandem_unit_copies
+		label_palindrome_arm_tandem_unit_copies,
+		label_split_bunch_maxsize
 	};
 	auto config_match_total = sizeof(config_match) / sizeof(config_match[0]);
 	int config_match_count = 0;
@@ -106,6 +113,9 @@ void Config::Parse(fs::path path)
 		}
 		else if (first == label_palindrome_arm_tandem_unit_copies) {
 			palindrome_arm_tandem_unit_copies = stoi(second); // can throw
+		}
+		else if (first == label_split_bunch_maxsize) {
+			split_bunch_maxsize = stoi(second); // can throw
 		}
 		// Process bools.
 		regex yes("\\bYES\\b", regex::icase);

@@ -16,6 +16,81 @@ using namespace std;
 namespace fs = filesystem;
 
 /*
+* Files that are too large will be split as follows.
+* The header is read from the original file.
+* The rest of the original file (the body)
+* is read in in bunches of size S 
+* and for each such bunch an output file is created
+* with the name as the original file and suffix partN
+* and the original extension (so they would be processed),
+* and whose contents will be the original header
+* followed by the bunch of S data bytes.
+* The original file's extension will be changed
+* to take it out of further processing.
+*/
+void split_input_file(string filename, int bunch_maxsize)
+{
+	auto basefilename = fs::path(filename).stem();
+	auto extension = fs::path(filename).extension();
+	auto output_folder = fs::current_path();
+
+	{
+		ifstream is(filename);
+		if (!is) {
+			Error().Fatal("Cannot open for reading file: " + filename);
+		}
+
+		string header = "";
+		while (is.peek() == '>') {
+			string line;
+			getline(is, line);
+			header += line + "\n";
+		}
+
+		int buffer_size = bunch_maxsize;
+		char* buffer = new char[buffer_size];
+
+		for (int suffix_id = 1; ; suffix_id++)
+		{
+			string output_filename_suffix = "_part_" + to_string(suffix_id);
+			string output_filename_string = basefilename.string() + output_filename_suffix + extension.string();
+			auto output_filename = fs::path(output_filename_string);
+			auto output_filepath = output_folder / output_filename;
+
+			ofstream os(output_filepath);
+			os.write(header.c_str(), header.size());
+
+			streamsize portion_size = buffer_size;
+			is.read(buffer, buffer_size);
+			if (is.eof()) {
+				portion_size = is.gcount();
+			}
+			os.write(buffer, portion_size);
+
+			if (is.eof()) {
+				break;
+			}
+		}
+
+		delete[]buffer;
+		is.close();
+	}
+
+	// Take care of the original file name.
+	time_t current_time;
+	time(&current_time);
+
+	tm timeinfo;
+	localtime_s(&timeinfo, &current_time);
+	
+	char timebuffer[20];
+	strftime(timebuffer, 20, "%Y%m%d-%H%M%S", &timeinfo); // YYYYMMDD-hhmmss
+
+	string stamped_filename = filename + "__" + string(timebuffer);
+	fs::rename(filename, stamped_filename);
+}
+
+/*
 * Auxiliary.
 */
 string summary_file_name(Config config) {
@@ -892,6 +967,25 @@ int main()
 
 		regex regex_fa(".+\\.(fa|fasta)", regex::icase);
 		// All files matching regex_fa
+		// Preprocessing - split large files if necessary
+		if (config.split_requested()) {
+			for (const auto& entry : fs::directory_iterator(folder_current_path)) {
+				auto filename = entry.path().filename().string();
+				if (!regex_match(filename, regex_fa)) {
+					continue;
+				}
+				
+				auto filesize = fs::file_size(filename);
+				if (filesize <= config.split_bunch_maxsize) {
+					continue;
+				}
+
+				split_input_file(filename, config.split_bunch_maxsize);
+			}
+		}
+
+		// All files matching regex_fa
+		// Processing
 		for (const auto& entry : fs::directory_iterator(folder_current_path)) {
 			auto filename = entry.path().filename().string();
 			if (!regex_match(filename, regex_fa)) {

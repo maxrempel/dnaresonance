@@ -46,6 +46,8 @@ struct Config
 	int palindrome_arm_tandem_min_unit;
 	int palindrome_arm_tandem_unit_copies;
 
+	int split_bunch_maxsize = -1;
+
 	unordered_set<char> letters; // legitimate letters to be analyzed; case insensitive
 	char masking_character = 'N';
 
@@ -77,6 +79,7 @@ struct Config
 	string label_palindrome_arm_tandem_min_unit = "palindrome_arm_tandem_min_unit";
 	string label_palindrome_arm_tandem_unit_copies = "palindrome_arm_tandem_unit_copies";
 	string label_input_filename_prefix = "filename_prefix_to_replace";
+	string label_split_bunch_maxsize = "split_bunch_maxsize";
 
 	string output_folder_name = "Output";
 
@@ -93,6 +96,11 @@ struct Config
 	bool is_whitespace(string s)
 	{
 		return s.find_first_not_of(" \t") == string::npos;
+	}
+
+	bool split_requested()
+	{
+		return split_bunch_maxsize > 0;
 	}
 
 	// Case insensitive.
