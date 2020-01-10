@@ -34,6 +34,7 @@ struct Config
 	bool please_only_palindromes = false;
 	int palindrome_arm;
 	int palindrome_center;
+	bool please_only_variable_centers = false;
 
 	bool please_only_tandems = false;
 	int tandem_min_unit;
@@ -80,6 +81,7 @@ struct Config
 	string label_palindrome_arm_tandem_unit_copies = "palindrome_arm_tandem_unit_copies";
 	string label_input_filename_prefix = "filename_prefix_to_replace";
 	string label_split_bunch_maxsize = "split_bunch_maxsize";
+	string label_palindrome_variable_centers = "variable_centers";
 
 	string output_folder_name = "Output";
 

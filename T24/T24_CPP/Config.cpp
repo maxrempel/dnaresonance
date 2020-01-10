@@ -46,7 +46,8 @@ void Config::Parse(fs::path path)
 		label_palindrome_arm_tandem_status,
 		label_palindrome_arm_tandem_min_unit,
 		label_palindrome_arm_tandem_unit_copies,
-		label_split_bunch_maxsize
+		label_split_bunch_maxsize,
+		label_palindrome_variable_centers
 	};
 	auto config_match_total = sizeof(config_match) / sizeof(config_match[0]);
 	int config_match_count = 0;
@@ -80,6 +81,7 @@ void Config::Parse(fs::path path)
 			continue; // already set
 		}
 		config_map[first] = second;
+		regex yes("\\bYES\\b", regex::icase);
 		// Process numerics.
 		if (first == label_fpt_min_repeat_length) {
 			fpt_min_repeat_length = stoi(second); //  can throw
@@ -118,8 +120,7 @@ void Config::Parse(fs::path path)
 			split_bunch_maxsize = stoi(second); // can throw
 		}
 		// Process bools.
-		regex yes("\\bYES\\b", regex::icase);
-		if (first == label_cull_crd) {
+		else if (first == label_cull_crd) {
 			please_cull_crd = regex_match(second, yes);
 		}
 		else if (first == label_create_fpt_file) {
@@ -137,8 +138,11 @@ void Config::Parse(fs::path path)
 		else if (first == label_only_tandems) {
 			please_only_tandems = regex_match(second, yes);
 		}
+		else if (first==label_palindrome_variable_centers) {
+			please_only_variable_centers = regex_match(second, yes);
+		}
 		// Process filters.
-		if (first == label_palindrome_status) {
+		else if (first == label_palindrome_status) {
 			palindrome_status = ReadFilterStatus(second);
 		}
 		else if (first == label_tandem_status) {
@@ -148,7 +152,7 @@ void Config::Parse(fs::path path)
 			palindrome_arm_tandem_status = ReadFilterStatus(second);
 		}
 		// Other special cases.
-		if (first == label_masking_character) {
+		else if (first == label_masking_character) {
 			masking_character = second.at(0);
 		}
 		// Iterate.
