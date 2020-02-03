@@ -11,6 +11,7 @@
 
 #include "Error.h"
 #include "Config.h"
+#include "SeqPalindromeVarCore.h"
 
 using namespace std;
 namespace fs = filesystem;
@@ -102,6 +103,7 @@ string summary_file_name(Config config) {
 
 // True if and only if seq is an exact palindrome,
 // with the constraints from config.
+// Current constraints: max stalk length, min arm length.
 bool is_palindrome(string seq, Config config) {
 	auto stalk_max_length = config.palindrome_center;
 	auto arm_min_length = config.palindrome_arm;
@@ -233,7 +235,7 @@ void process_file(string filename, Config config, Process_Type pt)
 	long count_control_chars = 0;
 	size_t count_meaningful_letters = 0;
 
-	// Build a map sequence -> count,
+	// Build a map sequence -> count, or more precisely sequence -> list of positions,
 	// and see how many different sequences of length config_min_repeat_length
 	// we encounter as a function of the number of input size.			
 
@@ -359,6 +361,85 @@ void process_file(string filename, Config config, Process_Type pt)
 			++seq_iter;
 		}
 	}
+
+	// If so requested, calculate the var core sequences from the full buffer.
+	// and store all the candidate sequences there.
+	// NOT SeqPalindromeVarCore but:
+	// A map from a left arm to another map,
+	// the latter from the core size to the count.
+	unordered_map<string, unordered_map<int, int>> seq_varcore2count;
+	if (config.please_only_variable_centers) {
+		/*
+		* Look at core candidates:
+		*	positions from (in arm length) to (input length) - (min arm length)
+		*	sizes from 0 to (max core size)
+		* At each core candidate, look at arm candidates:
+		*	arms of length (min arm length) to until the arms are not reverse of each other
+		* Every time we have a seq candidate that fits the above constraints, remember it in the map.
+		* Afterwards, can sift them out by count.
+		*/
+		auto input_size = fullbuffer_size;
+		auto min_repeat_count = config_copy_number;
+		auto min_arm_length = config.palindrome_arm;
+		auto max_core_size = config.palindrome_center;
+		for (streamsize core_position = 0; core_position < fullbuffer_size - 0; ++core_position) {
+			for (auto core_size = 0; core_size < max_core_size; ++core_size) {
+				if (core_position + core_size + min_arm_length >= input_size) {
+					break;
+				}
+
+				// Look at seq candidates around the given core.
+				for (int arm_length = 1; ; ++arm_length) {
+					auto left_pos = core_position - arm_length;
+					auto right_pos = core_position + core_size + arm_length - 1;
+					if (left_pos < 0 || right_pos >= input_size) {
+						break;
+					}
+
+					auto left_letter = fullbuffer[left_pos];
+					auto right_letter = fullbuffer[right_pos];
+					if (left_letter != right_letter) {
+						break;
+					}
+
+					if (arm_length >= min_arm_length) {
+						SeqPalindromeVarCore seq_candidate;
+						seq_candidate.core_length = core_size;
+						seq_candidate.left_arm = std::string(fullbuffer, left_pos, arm_length);
+						seq_varcore2count[seq_candidate.left_arm][seq_candidate.core_length] ++;
+						// TODO: remove SeqPalindromeVarCore
+					}
+				} // extending the arm
+			} // growing the core size
+		} // moving the core position
+
+		// Leave only the ones that appear a sufficient number of times.
+		auto iter_seq = seq_varcore2count.begin();
+		while (iter_seq != seq_varcore2count.end()) {
+			//auto corecounts = iter_seq->second;
+			auto iter_corecounts = iter_seq->second.begin();
+			while (iter_corecounts != iter_seq->second.end()) {
+				auto the_count = iter_corecounts->second;
+				if (the_count < min_repeat_count) {
+					//iter_seq->second.erase(iter_corecounts);
+					iter_corecounts = iter_seq->second.erase(iter_corecounts);
+				}
+				else {
+					++iter_corecounts;
+				}
+			}
+			if (iter_seq->second.empty()) {
+				iter_seq = seq_varcore2count.erase(iter_seq);
+				continue;
+			}
+			++iter_seq;
+		}
+
+	}
+
+	// Rebuild seq2positions
+	// which is used for further processing.
+	// TODO
 
 	auto stopwatch_finish = chrono::high_resolution_clock::now();
 	auto stopwatch_elapsed = stopwatch_finish - stopwatch_start;
