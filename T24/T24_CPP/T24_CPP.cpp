@@ -11,7 +11,6 @@
 
 #include "Error.h"
 #include "Config.h"
-#include "SeqPalindromeVarCore.h"
 
 using namespace std;
 namespace fs = filesystem;
@@ -323,20 +322,22 @@ void process_file(string filename, Config config, Process_Type pt)
 
 			memcpy(seq, fullbuffer + fullbuffer_position - config_min_repeat_length, (size_t)config_min_repeat_length);
 
-			try
-			{
-				if (seq2positions.count(seq) < 1) {
-					list<streamsize> ll;
-					seq2positions[seq] = ll;
+			if (!config.please_only_variable_centers) {
+				try
+				{
+					if (seq2positions.count(seq) < 1) {
+						list<streamsize> ll;
+						seq2positions[seq] = ll;
+					}
+					seq2positions[seq].push_back(position);
 				}
-				seq2positions[seq].push_back(position);
-			}
-			catch (const std::exception& ex)
-			{
-				cerr << "***seq2positions size=" << seq2positions.size() << " seq=" << seq << " ex=" << ex.what();
-				char ignore;
-				cin >> ignore;
-				exit(0);
+				catch (const std::exception& ex)
+				{
+					cerr << "***seq2positions size=" << seq2positions.size() << " seq=" << seq << " ex=" << ex.what();
+					char ignore;
+					cin >> ignore;
+					exit(0);
+				}
 			}
 		}
 
@@ -350,15 +351,17 @@ void process_file(string filename, Config config, Process_Type pt)
 
 	fullbuffer_size -= count_control_chars;
 
-	// Remove the sequences which appear less than requested.
-	auto seq_iter = seq2positions.begin();
-	while (seq_iter != seq2positions.end())
-	{
-		if (seq_iter->second.size() < config_copy_number) {
-			seq_iter = seq2positions.erase(seq_iter);
-		}
-		else {
-			++seq_iter;
+	if (!config.please_only_variable_centers) {
+		// Remove the sequences which appear less than requested.
+		auto seq_iter = seq2positions.begin();
+		while (seq_iter != seq2positions.end())
+		{
+			if (seq_iter->second.size() < config_copy_number) {
+				seq_iter = seq2positions.erase(seq_iter);
+			}
+			else {
+				++seq_iter;
+			}
 		}
 	}
 
@@ -366,8 +369,9 @@ void process_file(string filename, Config config, Process_Type pt)
 	// and store all the candidate sequences there.
 	// NOT SeqPalindromeVarCore but:
 	// A map from a left arm to another map,
-	// the latter from the core size to the count.
-	unordered_map<string, unordered_map<int, int>> seq_varcore2count;
+	// the latter from the core size to the list of locations
+	// (position of the first element of seq, that is, leftmost).
+	unordered_map<string, unordered_map<int, vector<int>>> seq_varcore2locations;
 	if (config.please_only_variable_centers) {
 		/*
 		* Look at core candidates:
@@ -403,25 +407,21 @@ void process_file(string filename, Config config, Process_Type pt)
 					}
 
 					if (arm_length >= min_arm_length) {
-						SeqPalindromeVarCore seq_candidate;
-						seq_candidate.core_length = core_size;
-						seq_candidate.left_arm = std::string(fullbuffer, left_pos, arm_length);
-						seq_varcore2count[seq_candidate.left_arm][seq_candidate.core_length] ++;
-						// TODO: remove SeqPalindromeVarCore
+						auto the_left_arm = std::string(fullbuffer, left_pos, arm_length);
+						seq_varcore2locations[the_left_arm][core_size].push_back(left_pos);
 					}
 				} // extending the arm
 			} // growing the core size
 		} // moving the core position
 
 		// Leave only the ones that appear a sufficient number of times.
-		auto iter_seq = seq_varcore2count.begin();
-		while (iter_seq != seq_varcore2count.end()) {
+		auto iter_seq = seq_varcore2locations.begin();
+		while (iter_seq != seq_varcore2locations.end()) {
 			//auto corecounts = iter_seq->second;
 			auto iter_corecounts = iter_seq->second.begin();
 			while (iter_corecounts != iter_seq->second.end()) {
-				auto the_count = iter_corecounts->second;
+				auto the_count = iter_corecounts->second.size();
 				if (the_count < min_repeat_count) {
-					//iter_seq->second.erase(iter_corecounts);
 					iter_corecounts = iter_seq->second.erase(iter_corecounts);
 				}
 				else {
@@ -429,17 +429,18 @@ void process_file(string filename, Config config, Process_Type pt)
 				}
 			}
 			if (iter_seq->second.empty()) {
-				iter_seq = seq_varcore2count.erase(iter_seq);
+				iter_seq = seq_varcore2locations.erase(iter_seq);
 				continue;
 			}
 			++iter_seq;
 		}
 
-	}
+		// Rebuild seq2positions
+		// which is used for further processing.
+		seq2positions;
+		// TODO
 
-	// Rebuild seq2positions
-	// which is used for further processing.
-	// TODO
+	}
 
 	auto stopwatch_finish = chrono::high_resolution_clock::now();
 	auto stopwatch_elapsed = stopwatch_finish - stopwatch_start;
