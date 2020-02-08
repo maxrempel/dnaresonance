@@ -972,11 +972,11 @@ void process_file(string filename, Config config, Process_Type pt)
 		// Goal: sort by seq count then by length.
 		// So, build a flat structure.
 
-		// Use the culled (not original) data.
+		// Use the original (not culled) data.
 
 		map<int, vector<string>> count2seqs; // count => seqs, ordered by count
 
-		for (auto const& [len, start2seq] : length2map_culled) {
+		for (auto const& [len, start2seq] : length2map) {
 			unordered_map<string, int> seq2count;
 			for (auto const& [start, seq] : start2seq) {
 				if (seq2count.count(seq) < 1) {
