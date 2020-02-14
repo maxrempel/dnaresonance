@@ -5,9 +5,19 @@
 
 #include "Util.h"
 #include "Error.h"
+#include "Config.h"
 
 using namespace std;
 namespace fs = filesystem;
+
+regex create_regex_from_config(Config config)
+{
+	char gappedTandem[100];
+	snprintf(gappedTandem, 100, "^(\\w{%d,}\\w{0,%d})\\1{%d,}$", 
+		config.min_tandem_component_length, config.max_gap_length, config.min_repeat_count - 1);
+	regex reGappedTandem(gappedTandem, regex::icase);
+	return reGappedTandem;
+}
 
 char* create_from_legit_letters(ifstream& is, size_t filesize, size_t& actual_size)
 {
@@ -42,10 +52,6 @@ char* create_from_legit_letters(ifstream& is, size_t filesize, size_t& actual_si
 		}
 	}
 
-
-
-	// TODO 
-
 	delete[] buffer;
 
 	return fullbuffer;
@@ -53,6 +59,9 @@ char* create_from_legit_letters(ifstream& is, size_t filesize, size_t& actual_si
 
 void process_file(string filename)
 {
+	Config config;
+	config.Parse();
+
 	ifstream is(filename);
 	if (!is) {
 		Error().Fatal("Cannot open for reading file: " + filename);
@@ -74,6 +83,10 @@ void process_file(string filename)
 	// while removing illegal letters/chars.
 	size_t fullbuffer_size;
 	auto fullbuffer = create_from_legit_letters(is, fs::file_size(filename), fullbuffer_size);
+
+	regex re_tandem = create_regex_from_config(config);
+
+
 
 
 	// TODO
@@ -116,11 +129,7 @@ int main()
 		process_file(filename);
 	} // for each input data file
 
-
-
-
 	// TODO
-
 
 	// Execution time.
 	auto stopwatch_finish = chrono::high_resolution_clock::now();
