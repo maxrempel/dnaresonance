@@ -13,8 +13,16 @@ namespace fs = filesystem;
 regex create_regex_from_config(Config config)
 {
 	char gappedTandem[100];
-	snprintf(gappedTandem, 100, "^(\\w{%d,}\\w{0,%d})\\1{%d,}$", 
+	snprintf(gappedTandem, 100, "^(\\w{%d,}\\w{0,%d})\\1{%d,}", 
 		config.min_tandem_component_length, config.max_gap_length, config.min_repeat_count - 1);
+	regex reGappedTandem(gappedTandem, regex::icase);
+	return reGappedTandem;
+}
+
+regex create_regex_from_config____(Config config)
+{
+	char gappedTandem[100];
+	snprintf(gappedTandem, 100, "^(\\w{3})\\1{1,}$");
 	regex reGappedTandem(gappedTandem, regex::icase);
 	return reGappedTandem;
 }
@@ -85,6 +93,14 @@ void process_file(string filename)
 	auto fullbuffer = create_from_legit_letters(is, fs::file_size(filename), fullbuffer_size);
 
 	regex re_tandem = create_regex_from_config(config);
+
+	int count_tandems = 0;
+	for (streamsize start_candidate = 0; start_candidate < fullbuffer_size; ++start_candidate) {
+		string candidate = string(fullbuffer + start_candidate, 12);
+		if (regex_match(candidate, re_tandem)) {
+			++count_tandems;
+		}
+	}
 
 
 
